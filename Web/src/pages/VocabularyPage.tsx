@@ -16,7 +16,7 @@ import { Badge } from '../components/Badge/Badge';
 import { Pagination } from '../components/Pagination/Pagination';
 import { EmptyState } from '../components/EmptyState/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog/ConfirmDialog';
-import { LoadingPage, SkeletonCard } from '../components/Loading/Loading';
+import { SkeletonCard } from '../components/Loading/Loading';
 
 // ─── Zod Schema ──────────────────────────────────────────────────────────────
 const schema = z.object({

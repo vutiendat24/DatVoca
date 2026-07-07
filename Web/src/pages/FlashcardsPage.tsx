@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, ChevronRight, Shuffle, Volume2, RotateCcw
-} from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import { useVocabulary, useUpdateSRS } from '../hooks/useVocabulary';
 import { useTopics } from '../hooks/useTopics';
 import { Difficulty, type Vocabulary } from '../types';
-import { DIFFICULTY_CONFIG } from '../constants';
 import { Button } from '../components/Button/Button';
 import { Select } from '../components/Input/Input';
 import { EmptyState } from '../components/EmptyState/EmptyState';

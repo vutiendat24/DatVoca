@@ -1,20 +1,22 @@
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-export enum Difficulty {
-  Easy = 'easy',
-  Medium = 'medium',
-  Hard = 'hard',
-  SuperHard = 'super_hard',
-}
+export const Difficulty = {
+  Easy: 'easy',
+  Medium: 'medium',
+  Hard: 'hard',
+  SuperHard: 'super_hard',
+} as const;
+export type Difficulty = typeof Difficulty[keyof typeof Difficulty];
 
-export enum ReadingDifficulty {
-  A1 = 'A1',
-  A2 = 'A2',
-  B1 = 'B1',
-  B2 = 'B2',
-  C1 = 'C1',
-  C2 = 'C2',
-}
+export const ReadingDifficulty = {
+  A1: 'A1',
+  A2: 'A2',
+  B1: 'B1',
+  B2: 'B2',
+  C1: 'C1',
+  C2: 'C2',
+} as const;
+export type ReadingDifficulty = typeof ReadingDifficulty[keyof typeof ReadingDifficulty];
 
 // ─── Topic ───────────────────────────────────────────────────────────────────
 

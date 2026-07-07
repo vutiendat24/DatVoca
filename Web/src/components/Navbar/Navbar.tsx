@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, Search, Moon, Sun } from 'lucide-react';
+import { Menu, Moon, Sun } from 'lucide-react';
 import { useUIStore } from '../../store/ui.store';
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useReadings, useCreateReading, useUpdateReading, useDeleteReading, useGenerateReading } from '../hooks/useReadings';
 import { useTopics } from '../hooks/useTopics';
-import { ReadingDifficulty, type Reading } from '../types';
+import { ReadingDifficulty, type Reading, type CreateReadingDTO } from '../types';
 import { READING_DIFFICULTY_CONFIG } from '../constants';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
@@ -24,7 +24,7 @@ import { toast } from '../components/Toast/Toast';
 const questionSchema = z.object({
   question: z.string().min(1, 'Question required'),
   choices: z.array(z.string().min(1, 'Choice required')).length(4),
-  correctAnswer: z.coerce.number().min(0).max(3),
+  correctAnswer: z.number().min(0).max(3),
   explanation: z.string().min(1, 'Explanation required'),
 });
 
@@ -34,7 +34,7 @@ const readingSchema = z.object({
   paragraph: z.string().min(50, 'Paragraph must be at least 50 characters'),
   translation: z.string().min(1, 'Translation required'),
   difficulty: z.nativeEnum(ReadingDifficulty),
-  estimatedMinutes: z.coerce.number().min(1).max(60),
+  estimatedMinutes: z.number().min(1).max(60),
   vocabularyHighlights: z.string(),
   questions: z.array(questionSchema).min(1, 'At least 1 question required'),
 });
@@ -124,9 +124,15 @@ const ReadingFormModal: React.FC<{
   };
 
   const onSubmit = handleSubmit(async (data) => {
-    const dto = {
-      ...data,
-      vocabularyHighlights: data.vocabularyHighlights.split(',').map(s => s.trim()).filter(Boolean),
+    const dto: CreateReadingDTO = {
+      title: data.title,
+      topicId: data.topicId,
+      paragraph: data.paragraph,
+      translation: data.translation,
+      difficulty: data.difficulty,
+      estimatedMinutes: data.estimatedMinutes,
+      vocabularyHighlights: data.vocabularyHighlights.split(',').map((s: string) => s.trim()).filter(Boolean),
+      questions: data.questions,
     };
     if (isEdit) await updateMutation.mutateAsync({ id: initialData.id, dto });
     else await createMutation.mutateAsync(dto);
@@ -156,7 +162,7 @@ const ReadingFormModal: React.FC<{
 
         <div className="grid grid-cols-2 gap-4">
           <Select label="Difficulty *" options={diffOpts} error={errors.difficulty?.message} {...register('difficulty')} />
-          <Input label="Est. Minutes *" type="number" min={1} max={60} error={errors.estimatedMinutes?.message} {...register('estimatedMinutes')} />
+          <Input label="Est. Minutes *" type="number" min={1} max={60} error={errors.estimatedMinutes?.message} {...register('estimatedMinutes', { valueAsNumber: true })} />
         </div>
 
         <Textarea label="English Paragraph *" placeholder="Reading content..." rows={6} error={errors.paragraph?.message} {...register('paragraph')} />
@@ -191,7 +197,7 @@ const ReadingFormModal: React.FC<{
                     <Input key={ci} label={`Choice ${ci + 1}`} placeholder={`Option ${ci + 1}`} error={(errors.questions?.[qi]?.choices?.[ci] as any)?.message} {...register(`questions.${qi}.choices.${ci}`)} />
                   ))}
                   <div className="grid grid-cols-2 gap-3">
-                    <Select label="Correct Answer" options={[0,1,2,3].map(i=>({ value: String(i), label: `Choice ${i+1}` }))} {...register(`questions.${qi}.correctAnswer`)} />
+                    <Select label="Correct Answer" options={[0,1,2,3].map(i=>({ value: String(i), label: `Choice ${i+1}` }))} {...register(`questions.${qi}.correctAnswer`, { valueAsNumber: true })} />
                   </div>
                   <Textarea label="Explanation" placeholder="Why is this correct?" rows={2} {...register(`questions.${qi}.explanation`)} />
                 </div>

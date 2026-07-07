@@ -37,9 +37,12 @@ export const readingApi = {
     await delay();
     const index = readings.findIndex(r => r.id === id);
     if (index === -1) throw new Error('Reading not found');
-    const updated = {
+    const updated: Reading = {
       ...readings[index],
       ...dto,
+      questions: dto.questions
+        ? dto.questions.map((q, i) => ({ ...q, id: (q as any).id || `q_${Date.now()}_${i}` }))
+        : readings[index].questions,
       updatedAt: new Date().toISOString(),
     };
     readings = readings.map(r => r.id === id ? updated : r);
