@@ -1,39 +1,56 @@
-import './App.css'
+import { lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import MainLayout from './layouts/MainLayout';
+import { LoadingPage } from './components/Loading/Loading';
 
-import { Routes, Route } from 'react-router-dom'
-import MainLayout from './layouts/MainLayout'
-import FlashcardPage from './pages/Flashcard'
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const VocabularyPage = lazy(() => import('./pages/VocabularyPage'));
+const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'));
+const TopicsPage = lazy(() => import('./pages/TopicsPage'));
+const ReadingPage = lazy(() => import('./pages/ReadingPage'));
+const TodayPage = lazy(() => import('./pages/TodayPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={
-          <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-            <h1 className="text-5xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">Home Page</h1>
-            <p className="text-lg text-gray-500 dark:text-gray-400">Welcome to DatVoca!</p>
-          </div>
-        } />
-
-      <Route path="/voca" element={<FlashcardPage />} />
-
-
-
-
-
-
-
-
-        <Route path="about" element={
-          <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-            <h1 className="text-5xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">About Page</h1>
-          </div>
-        } />
-      </Route>
-    </Routes>
-  )
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={
+            <Suspense fallback={<LoadingPage />}><Dashboard /></Suspense>
+          } />
+          <Route path="vocabulary" element={
+            <Suspense fallback={<LoadingPage />}><VocabularyPage /></Suspense>
+          } />
+          <Route path="flashcards" element={
+            <Suspense fallback={<LoadingPage />}><FlashcardsPage /></Suspense>
+          } />
+          <Route path="topics" element={
+            <Suspense fallback={<LoadingPage />}><TopicsPage /></Suspense>
+          } />
+          <Route path="reading" element={
+            <Suspense fallback={<LoadingPage />}><ReadingPage /></Suspense>
+          } />
+          <Route path="today" element={
+            <Suspense fallback={<LoadingPage />}><TodayPage /></Suspense>
+          } />
+          <Route path="settings" element={
+            <Suspense fallback={<LoadingPage />}><SettingsPage /></Suspense>
+          } />
+        </Route>
+      </Routes>
+    </QueryClientProvider>
+  );
 }
 
-export default App
-
+export default App;

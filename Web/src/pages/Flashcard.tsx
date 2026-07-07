@@ -73,10 +73,8 @@ const FlashcardPage = () => {
     }));
   };
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid keyboard conflicts if user is focused on form fields (not present here, but safe practice)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -122,7 +120,6 @@ const FlashcardPage = () => {
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-start py-8 px-4 sm:px-6">
       <div className="w-full max-w-[700px] flex flex-col gap-6">
         
-        {/* Top Progress Section */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-sm font-semibold text-gray-500">
             <span>Progress</span>
@@ -138,9 +135,6 @@ const FlashcardPage = () => {
           </div>
         </div>
 
-  
-
-        {/* Flashcard Component */}
         <div
           role="button"
           tabIndex={0}
@@ -159,8 +153,7 @@ const FlashcardPage = () => {
               isFlipped ? "rotate-y-180" : ""
             }`}
           >
-            {/* Front Side */}
-            <div className="absolute inset-0 w-full h-full backface-hidden rounded-3xl bg-white border border-slate-100 p-8 flex flex-col justify-center items-center">
+            <div className={`absolute inset-0 w-full h-full backface-hidden rounded-3xl bg-white border border-slate-100 p-8 flex flex-col justify-center items-center transition-all duration-300 ${isFlipped ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-800 tracking-tight capitalize select-none">
                 {currentCard.word}
@@ -172,17 +165,14 @@ const FlashcardPage = () => {
               )}
             </div>
 
-            {/* Back Side */}
-            <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl bg-white border border-slate-100 p-6 sm:p-10 flex flex-col justify-between overflow-y-auto">
+            <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl bg-white border border-slate-100 p-6 sm:p-10 flex flex-col justify-center gap-5 overflow-y-auto transition-all duration-300 ${isFlipped ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <div className="flex flex-col items-center gap-1 select-none">
-                {/* Meaning Section */}
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 text-center leading-relaxed mt-1">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 text-center leading-relaxed">
                   {currentCard.meaning}
                 </p>
               </div>
 
-              {/* Example Section */}
-              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-6 border border-slate-100 select-none mt-4">
+              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl p-4 sm:p-6 border border-slate-100 select-none">
                 <h4 className="text-xs font-bold uppercase tracking-widest text-orange-500 text-center mb-2">
                   Example Sentence
                 </h4>
@@ -194,11 +184,9 @@ const FlashcardPage = () => {
           </div>
         </div>
 
-        {/* Difficulty Selector */}
         <div className="flex flex-col gap-3">
          
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Easy */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -214,7 +202,6 @@ const FlashcardPage = () => {
               Easy
             </button>
 
-            {/* Medium */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -230,7 +217,6 @@ const FlashcardPage = () => {
               Medium
             </button>
 
-            {/* Hard */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -246,7 +232,6 @@ const FlashcardPage = () => {
               Hard
             </button>
 
-            {/* Super Hard */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -264,7 +249,6 @@ const FlashcardPage = () => {
           </div>
         </div>
 
-        {/* Navigation Section */}
         <div className="flex justify-between items-center gap-4 mt-2">
           <button
             onClick={prevCard}
