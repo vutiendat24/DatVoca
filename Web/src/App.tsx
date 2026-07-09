@@ -6,11 +6,11 @@ import { LoadingPage } from './components/Loading/Loading';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const VocabularyPage = lazy(() => import('./pages/VocabularyPage'));
+const SentencesPage = lazy(() => import('./pages/SentencesPage'));
 const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'));
 const TopicsPage = lazy(() => import('./pages/TopicsPage'));
 const ReadingPage = lazy(() => import('./pages/ReadingPage'));
 const TodayPage = lazy(() => import('./pages/TodayPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +32,9 @@ function App() {
           <Route path="vocabulary" element={
             <Suspense fallback={<LoadingPage />}><VocabularyPage /></Suspense>
           } />
+          <Route path="sentences" element={
+            <Suspense fallback={<LoadingPage />}><SentencesPage /></Suspense>
+          } />
           <Route path="flashcards" element={
             <Suspense fallback={<LoadingPage />}><FlashcardsPage /></Suspense>
           } />
@@ -43,9 +46,6 @@ function App() {
           } />
           <Route path="today" element={
             <Suspense fallback={<LoadingPage />}><TodayPage /></Suspense>
-          } />
-          <Route path="settings" element={
-            <Suspense fallback={<LoadingPage />}><SettingsPage /></Suspense>
           } />
         </Route>
       </Routes>

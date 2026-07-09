@@ -1,4 +1,4 @@
-import { mockVocabulary } from './mockData';
+import { supabase } from '../lib/supabase';
 import {
   Difficulty,
   type Vocabulary,
@@ -9,147 +9,162 @@ import {
 } from '../types';
 import { DEFAULT_PAGE_SIZE } from '../constants';
 
-const delay = (ms = 400) => new Promise(res => setTimeout(res, ms));
-
-let vocabulary = [...mockVocabulary];
-
 export const vocabularyApi = {
   getAll: async (filters: VocabularyFilters = {}): Promise<PaginatedResponse<Vocabulary>> => {
-    await delay();
-    let result = [...vocabulary];
+    let query = supabase.from('vocabularies').select('*', { count: 'exact' });
 
     if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        v =>
-          v.word.toLowerCase().includes(q) ||
-          v.meaning.toLowerCase().includes(q) ||
-          v.topicName?.toLowerCase().includes(q),
-      );
+      const q = filters.search;
+      query = query.or(`word.ilike.%${q}%,meaning.ilike.%${q}%,topicName.ilike.%${q}%`);
     }
-    if (filters.topicId) result = result.filter(v => v.topicId === filters.topicId);
-    if (filters.difficulty) result = result.filter(v => v.difficulty === filters.difficulty);
-    if (filters.isLearned !== undefined) result = result.filter(v => v.isLearned === filters.isLearned);
+    if (filters.topicId) query = query.eq('topicId', filters.topicId);
+    if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
+    if (filters.isLearned !== undefined) query = query.eq('isLearned', filters.isLearned);
 
     if (filters.sort) {
-      const key = filters.sort as keyof Vocabulary;
-      const order = filters.order === 'desc' ? -1 : 1;
-      result = result.sort((a, b) => (String(a[key]) > String(b[key]) ? order : -order));
+      const order = filters.order === 'desc' ? false : true;
+      query = query.order(filters.sort, { ascending: order });
+    } else {
+      query = query.order('createdAt', { ascending: false });
     }
 
-    const total = result.length;
     const page = filters.page ?? 1;
     const limit = filters.limit ?? DEFAULT_PAGE_SIZE;
     const start = (page - 1) * limit;
-    const data = result.slice(start, start + limit);
+    
+    query = query.range(start, start + limit - 1);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const { data, error, count } = await query;
+    if (error) throw new Error(error.message);
+
+    const total = count || 0;
+    return { data: data || [], total, page, limit, totalPages: Math.ceil(total / limit) };
   },
 
   getToday: async (): Promise<Vocabulary[]> => {
-    await delay();
-    const todayStr = new Date().toISOString().slice(0, 10);
-    return vocabulary.filter(v => v.createdAt.startsWith(todayStr));
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .select('*')
+      .or(`nextReviewAt.is.null,nextReviewAt.lte.${now}`);
+    
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  getQuickReview: async (): Promise<Vocabulary[]> => {
+    const now = new Date().toISOString();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .select('*')
+      .or(`nextReviewAt.is.null,nextReviewAt.lte.${now},and(updatedAt.gte.${startOfToday.toISOString()},isLearned.eq.true)`);
+    
+    if (error) throw new Error(error.message);
+    return data || [];
   },
 
   getByTopic: async (topicId: string): Promise<Vocabulary[]> => {
-    await delay();
-    return vocabulary.filter(v => v.topicId === topicId);
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .select('*')
+      .eq('topicId', topicId);
+      
+    if (error) throw new Error(error.message);
+    return data || [];
   },
 
   getById: async (id: string): Promise<Vocabulary> => {
-    await delay();
-    const v = vocabulary.find(item => item.id === id);
-    if (!v) throw new Error('Vocabulary not found');
-    return { ...v };
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('Vocabulary not found');
+    return data;
   },
 
   create: async (dto: CreateVocabularyDTO): Promise<Vocabulary> => {
-    await delay();
-    const newVoca: Vocabulary = {
-      id: `v_${Date.now()}`,
-      ...dto,
-      topicName: undefined,
-      isLearned: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    vocabulary = [...vocabulary, newVoca];
-    return newVoca;
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .insert([{ ...dto, isLearned: false }])
+      .select()
+      .single();
+      
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   update: async (id: string, dto: UpdateVocabularyDTO): Promise<Vocabulary> => {
-    await delay();
-    const index = vocabulary.findIndex(v => v.id === id);
-    if (index === -1) throw new Error('Vocabulary not found');
-    const updated = { ...vocabulary[index], ...dto, updatedAt: new Date().toISOString() };
-    vocabulary = vocabulary.map(v => v.id === id ? updated : v);
-    return updated;
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .update({ ...dto, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   delete: async (id: string): Promise<void> => {
-    await delay();
-    vocabulary = vocabulary.filter(v => v.id !== id);
+    const { error } = await supabase
+      .from('vocabularies')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw new Error(error.message);
   },
 
   markLearned: async (id: string, isLearned: boolean): Promise<Vocabulary> => {
-    await delay();
-    const index = vocabulary.findIndex(v => v.id === id);
-    if (index === -1) throw new Error('Vocabulary not found');
-    const updated = { ...vocabulary[index], isLearned, updatedAt: new Date().toISOString() };
-    vocabulary = vocabulary.map(v => v.id === id ? updated : v);
-    return updated;
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .update({ isLearned, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   updateSRS: async (id: string, difficulty: Difficulty): Promise<Vocabulary> => {
-    await delay();
-    const index = vocabulary.findIndex(v => v.id === id);
-    if (index === -1) throw new Error('Vocabulary not found');
-    const prev = vocabulary[index];
+    const prev = await vocabularyApi.getById(id);
 
-    let q = 3;
-    if (difficulty === Difficulty.Easy) q = 5;
-    else if (difficulty === Difficulty.Medium) q = 4;
-    else if (difficulty === Difficulty.Hard) q = 3;
-    else if (difficulty === Difficulty.SuperHard) q = 1;
+    const newReps = (prev.repetitions || 0) + 1;
+    let interval = 1;
 
-    let reps = prev.repetitions ?? 0;
-    let ef = prev.easeFactor ?? 2.5;
-    let interval = prev.interval ?? 0;
-
-    if (q >= 3) {
-      if (reps === 0) {
-        interval = 1;
-      } else if (reps === 1) {
-        interval = 6;
-      } else {
-        interval = Math.round(interval * ef);
-      }
-      reps++;
+    if (newReps > 10) {
+      interval = 120; // 4 tháng
     } else {
-      reps = 0;
-      interval = 1;
+      if (difficulty === Difficulty.SuperHard) interval = 1;
+      else if (difficulty === Difficulty.Hard) interval = 2;
+      else if (difficulty === Difficulty.Medium) interval = 4;
+      else if (difficulty === Difficulty.Easy) interval = 7;
     }
-
-    ef = ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
-    if (ef < 1.3) ef = 1.3;
 
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + interval);
 
-    const updated: Vocabulary = {
-      ...prev,
-      difficulty,
-      isLearned: true,
-      repetitions: reps,
-      easeFactor: ef,
-      interval,
-      nextReviewAt: nextReviewDate.toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const { data, error } = await supabase
+      .from('vocabularies')
+      .update({
+        difficulty,
+        isLearned: true,
+        repetitions: newReps,
+        interval,
+        nextReviewAt: nextReviewDate.toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-    vocabulary = vocabulary.map(v => v.id === id ? updated : v);
-    return updated;
+    if (error) throw new Error(error.message);
+    return data;
   },
 };
 

@@ -18,6 +18,13 @@ export const useTodayVocabulary = () => {
   });
 };
 
+export const useQuickReviewVocabulary = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.VOCABULARY_TODAY, 'quick_review'],
+    queryFn: vocabularyApi.getQuickReview,
+  });
+};
+
 export const useVocabularyByTopic = (topicId: string) => {
   return useQuery({
     queryKey: [QUERY_KEYS.VOCABULARY, 'topic', topicId],

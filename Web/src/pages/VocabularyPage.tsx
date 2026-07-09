@@ -1,16 +1,19 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, ArrowUpDown, CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react';
 import { useVocabulary, useCreateVocabulary, useUpdateVocabulary, useDeleteVocabulary, useMarkLearned } from '../hooks/useVocabulary';
+import { aiApi } from '../api/ai.api';
 import { useTopics } from '../hooks/useTopics';
 import { Difficulty, type Vocabulary, type VocabularyFilters } from '../types';
 import { DIFFICULTY_CONFIG, DEFAULT_PAGE_SIZE } from '../constants';
 import { Card } from '../components/Card/Card';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
+import { Flashcard } from '../components/Flashcard/Flashcard';
 import { Input, Select, Textarea } from '../components/Input/Input';
 import { Badge } from '../components/Badge/Badge';
 import { Pagination } from '../components/Pagination/Pagination';
@@ -25,8 +28,8 @@ const schema = z.object({
   meaning: z.string().min(1, 'Meaning is required'),
   exampleEn: z.string().min(1, 'English example is required'),
   exampleVi: z.string().min(1, 'Vietnamese translation is required'),
-  topicId: z.string().min(1, 'Topic is required'),
-  difficulty: z.nativeEnum(Difficulty),
+  topicId: z.string().optional(),
+  difficulty: z.nativeEnum(Difficulty).optional(),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -41,7 +44,7 @@ const VocabFormModal: React.FC<{
   const updateMutation = useUpdateVocabulary();
   const isEdit = !!initialData;
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors }, reset, getValues, setValue } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: initialData
       ? { word: initialData.word, ipa: initialData.ipa, meaning: initialData.meaning, exampleEn: initialData.exampleEn, exampleVi: initialData.exampleVi, topicId: initialData.topicId, difficulty: initialData.difficulty }
@@ -57,13 +60,38 @@ const VocabFormModal: React.FC<{
   }, [isOpen, initialData, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
+    const payload = { ...data };
+    if (payload.topicId === '') payload.topicId = undefined;
+
     if (isEdit) {
-      await updateMutation.mutateAsync({ id: initialData.id, dto: data });
+      await updateMutation.mutateAsync({ id: initialData.id, dto: payload });
     } else {
-      await createMutation.mutateAsync(data);
+      await createMutation.mutateAsync(payload);
     }
     onClose();
   });
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const handleGenerate = async () => {
+    const word = getValues('word');
+    if (!word) {
+      alert('Vui lòng nhập Từ tiếng Anh trước khi tạo tự động.');
+      return;
+    }
+    
+    try {
+      setIsGenerating(true);
+      const data = await aiApi.generateVocabulary(word);
+      setValue('ipa', data.ipa);
+      setValue('meaning', data.meaning);
+      setValue('exampleEn', data.exampleEn);
+      setValue('exampleVi', data.exampleVi);
+    } catch (error: any) {
+      alert(error.message || 'Lỗi khi tạo tự động.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const diffOpts = Object.values(Difficulty).map(d => ({ value: d, label: DIFFICULTY_CONFIG[d].label }));
 
@@ -83,17 +111,27 @@ const VocabFormModal: React.FC<{
       }
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input label="English Word *" placeholder="e.g. ephemeral" error={errors.word?.message} {...register('word')} />
-          <Input label="IPA Pronunciation *" placeholder="e.g. /ɪˈfem.ər.əl/" error={errors.ipa?.message} {...register('ipa')} />
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Input label="Từ tiếng Anh *" placeholder="Ví dụ: ephemeral" error={errors.word?.message} {...register('word')} />
+          </div>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={handleGenerate} 
+            disabled={isGenerating}
+            leftIcon={isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-amber-500" />}
+          >
+            Generate
+          </Button>
         </div>
-        <Textarea label="Meaning *" placeholder="Definition in English..." error={errors.meaning?.message} rows={2} {...register('meaning')} />
-        <Textarea label="English Example *" placeholder="Example sentence..." error={errors.exampleEn?.message} rows={2} {...register('exampleEn')} />
-        <Textarea label="Vietnamese Translation *" placeholder="Bản dịch tiếng Việt..." error={errors.exampleVi?.message} rows={2} {...register('exampleVi')} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select label="Topic *" options={topicOptions} placeholder="Select topic" error={errors.topicId?.message} {...register('topicId')} />
-          <Select label="Difficulty *" options={diffOpts} error={errors.difficulty?.message} {...register('difficulty')} />
+          <Input label="Phát âm (IPA) *" placeholder="Ví dụ: /ɪˈfem.ər.əl/" error={errors.ipa?.message} {...register('ipa')} />
         </div>
+        <Textarea label="Nghĩa tiếng Việt *" placeholder="Nghĩa của từ tiếng Anh..." error={errors.meaning?.message} rows={2} {...register('meaning')} />
+        <Textarea label="Câu ví dụ (Tiếng Anh) *" placeholder="Câu ví dụ..." error={errors.exampleEn?.message} rows={2} {...register('exampleEn')} />
+        <Textarea label="Dịch câu ví dụ *" placeholder="Bản dịch của câu ví dụ..." error={errors.exampleVi?.message} rows={2} {...register('exampleVi')} />
+       
       </form>
     </Modal>
   );
@@ -104,7 +142,8 @@ const VocabRow: React.FC<{
   vocab: Vocabulary;
   onEdit: (v: Vocabulary) => void;
   onDelete: (v: Vocabulary) => void;
-}> = ({ vocab, onEdit, onDelete }) => {
+  onShowFlashcard: (v: Vocabulary) => void;
+}> = ({ vocab, onEdit, onDelete, onShowFlashcard }) => {
   const markLearned = useMarkLearned();
   return (
     <motion.tr
@@ -120,10 +159,15 @@ const VocabRow: React.FC<{
           {vocab.isLearned ? <CheckCircle2 size={20} className="text-emerald-500" /> : <Circle size={20} />}
         </button>
       </td>
-      <td className="px-4 py-4">
-        <div>
-          <p className="font-bold text-gray-900 dark:text-white">{vocab.word}</p>
-          <p className="text-xs text-gray-400 font-mono">{vocab.ipa}</p>
+      <td className="px-4 py-4 cursor-pointer" onClick={() => onShowFlashcard(vocab)}>
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 dark:text-white group-hover:text-pink-500 transition-colors truncate">{vocab.word}</p>
+            <p className="text-xs text-gray-400 font-mono truncate">{vocab.ipa}</p>
+          </div>
+          <div className="flex-1 min-w-0 text-right sm:hidden">
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{vocab.meaning}</p>
+          </div>
         </div>
       </td>
       <td className="px-4 py-4 max-w-xs hidden sm:table-cell">
@@ -132,7 +176,7 @@ const VocabRow: React.FC<{
       <td className="px-4 py-4 hidden md:table-cell">
         {vocab.topicName && <Badge variant="pink">{vocab.topicName}</Badge>}
       </td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-4 hidden sm:table-cell">
         <Badge difficulty={vocab.difficulty} />
       </td>
       <td className="px-4 py-4">
@@ -149,13 +193,25 @@ const VocabRow: React.FC<{
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VocabularyPage() {
-  const [filters, setFilters] = useState<VocabularyFilters>({ page: 1, limit: DEFAULT_PAGE_SIZE });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const topicIdParam = searchParams.get('topicId') || '';
+
+  const [filters, setFilters] = useState<VocabularyFilters>(() => ({
+    page: 1,
+    limit: DEFAULT_PAGE_SIZE,
+    topicId: topicIdParam || undefined,
+  }));
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVocab, setEditingVocab] = useState<Vocabulary | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Vocabulary | undefined>();
+  const [flashcardVocab, setFlashcardVocab] = useState<Vocabulary | undefined>();
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  useEffect(() => {
+    setFilters(f => ({ ...f, topicId: topicIdParam || undefined, page: 1 }));
+  }, [topicIdParam]);
 
   const { data, isLoading } = useVocabulary(filters);
   const { data: topics } = useTopics();
@@ -210,7 +266,13 @@ export default function VocabularyPage() {
             <Select
               options={topicFilterOpts}
               className="min-w-[140px]"
-              onChange={e => setFilters(f => ({ ...f, topicId: e.target.value || undefined, page: 1 }))}
+              value={filters.topicId || ''}
+              onChange={e => {
+                const val = e.target.value;
+                setFilters(f => ({ ...f, topicId: val || undefined, page: 1 }));
+                if (val) setSearchParams({ topicId: val });
+                else setSearchParams({});
+              }}
             />
             <Select
               options={diffFilterOpts}
@@ -247,13 +309,13 @@ export default function VocabularyPage() {
                   </th>
                   <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Meaning</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden md:table-cell">Topic</th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Level</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Level</th>
                   <th className="px-4 py-3 w-20" />
                 </tr>
               </thead>
               <tbody>
                 {data.data.map(v => (
-                  <VocabRow key={v.id} vocab={v} onEdit={handleEdit} onDelete={handleDelete} />
+                  <VocabRow key={v.id} vocab={v} onEdit={handleEdit} onDelete={handleDelete} onShowFlashcard={(v) => { setFlashcardVocab(v); setIsFlipped(false); }} />
                 ))}
               </tbody>
             </table>
@@ -283,6 +345,30 @@ export default function VocabularyPage() {
         message={`Remove "${deleteTarget?.word}" from your collection?`}
         isLoading={deleteMutation.isPending}
       />
+      <Modal
+        isOpen={!!flashcardVocab}
+        onClose={() => setFlashcardVocab(undefined)}
+        title="Học từ"
+        size="md"
+      >
+        {flashcardVocab && (
+          <Flashcard
+            isFlipped={isFlipped}
+            onFlip={() => setIsFlipped(f => !f)}
+            onAudio={() => {
+              if ('speechSynthesis' in window) {
+                const utter = new SpeechSynthesisUtterance(flashcardVocab.word);
+                utter.lang = 'en-US';
+                window.speechSynthesis.speak(utter);
+              }
+            }}
+            frontMain={flashcardVocab.word}
+            frontSub={flashcardVocab.ipa}
+            backMain={flashcardVocab.meaning}
+            backSub={flashcardVocab.exampleEn}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

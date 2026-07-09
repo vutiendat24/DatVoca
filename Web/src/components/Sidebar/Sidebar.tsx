@@ -2,18 +2,18 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, BookOpen, Zap, Tag, FileText, CalendarDays, Settings, X,
+  LayoutDashboard, BookOpen, Zap, Tag, FileText, CalendarDays, X, MessageCircle
 } from 'lucide-react';
 import { useUIStore } from '../../store/ui.store';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} />, end: true },
   { to: '/vocabulary', label: 'Vocabulary', icon: <BookOpen size={20} /> },
+  { to: '/sentences', label: 'Sentences', icon: <MessageCircle size={20} /> },
   { to: '/flashcards', label: 'Flashcards', icon: <Zap size={20} /> },
   { to: '/topics', label: 'Topics', icon: <Tag size={20} /> },
   { to: '/reading', label: 'Reading', icon: <FileText size={20} /> },
   { to: '/today', label: "Today's Words", icon: <CalendarDays size={20} /> },
-  { to: '/settings', label: 'Settings', icon: <Settings size={20} /> },
 ];
 
 const NavItem: React.FC<{ to: string; label: string; icon: React.ReactNode; end?: boolean; onClick?: () => void }> = ({

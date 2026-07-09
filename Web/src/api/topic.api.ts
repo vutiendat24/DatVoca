@@ -1,47 +1,58 @@
-import { mockTopics } from './mockData';
 import type { Topic, CreateTopicDTO, UpdateTopicDTO } from '../types';
-
-const delay = (ms = 400) => new Promise(res => setTimeout(res, ms));
-
-let topics = [...mockTopics];
+import { supabase } from '../lib/supabase';
 
 export const topicApi = {
   getAll: async (): Promise<Topic[]> => {
-    await delay();
-    return [...topics];
+    const { data, error } = await supabase
+      .from('topics')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
   },
 
   getById: async (id: string): Promise<Topic> => {
-    await delay();
-    const topic = topics.find(t => t.id === id);
-    if (!topic) throw new Error('Topic not found');
-    return { ...topic };
+    const { data, error } = await supabase
+      .from('topics')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('Topic not found');
+    return data;
   },
 
   create: async (dto: CreateTopicDTO): Promise<Topic> => {
-    await delay();
-    const newTopic: Topic = {
-      id: `t_${Date.now()}`,
-      ...dto,
-      vocabularyCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    topics = [...topics, newTopic];
-    return newTopic;
+    const { data, error } = await supabase
+      .from('topics')
+      .insert([dto])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   update: async (id: string, dto: UpdateTopicDTO): Promise<Topic> => {
-    await delay();
-    const index = topics.findIndex(t => t.id === id);
-    if (index === -1) throw new Error('Topic not found');
-    const updated = { ...topics[index], ...dto, updatedAt: new Date().toISOString() };
-    topics = topics.map(t => t.id === id ? updated : t);
-    return updated;
+    const { data, error } = await supabase
+      .from('topics')
+      .update({ ...dto, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   delete: async (id: string): Promise<void> => {
-    await delay();
-    topics = topics.filter(t => t.id !== id);
+    const { error } = await supabase
+      .from('topics')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
   },
 };

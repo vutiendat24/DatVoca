@@ -49,9 +49,9 @@ export interface Vocabulary {
   meaning: string;
   exampleEn: string;
   exampleVi: string;
-  topicId: string;
+  topicId?: string;
   topicName?: string;
-  difficulty: Difficulty;
+  difficulty?: Difficulty;
   isLearned: boolean;
   nextReviewAt?: string;
   interval?: number; // in days
@@ -67,13 +67,51 @@ export interface CreateVocabularyDTO {
   meaning: string;
   exampleEn: string;
   exampleVi: string;
-  topicId: string;
-  difficulty: Difficulty;
+  topicId?: string;
+  difficulty?: Difficulty;
 }
 
 export type UpdateVocabularyDTO = Partial<CreateVocabularyDTO>;
 
 export interface VocabularyFilters {
+  search?: string;
+  topicId?: string;
+  difficulty?: Difficulty;
+  isLearned?: boolean;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+// ─── Sentence ─────────────────────────────────────────────────────────────────
+
+export interface Sentence {
+  id: string;
+  english: string;
+  vietnamese: string;
+  topicId?: string;
+  topicName?: string;
+  difficulty?: Difficulty;
+  isLearned: boolean;
+  nextReviewAt?: string;
+  interval?: number; // in days
+  easeFactor?: number;
+  repetitions?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSentenceDTO {
+  english: string;
+  vietnamese: string;
+  topicId?: string;
+  difficulty?: Difficulty;
+}
+
+export type UpdateSentenceDTO = Partial<CreateSentenceDTO>;
+
+export interface SentenceFilters {
   search?: string;
   topicId?: string;
   difficulty?: Difficulty;
