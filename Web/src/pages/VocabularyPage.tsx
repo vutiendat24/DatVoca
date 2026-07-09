@@ -38,8 +38,7 @@ const VocabFormModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   initialData?: Vocabulary;
-  topicOptions: { value: string; label: string }[];
-}> = ({ isOpen, onClose, initialData, topicOptions }) => {
+}> = ({ isOpen, onClose, initialData }) => {
   const createMutation = useCreateVocabulary();
   const updateMutation = useUpdateVocabulary();
   const isEdit = !!initialData;
@@ -93,7 +92,6 @@ const VocabFormModal: React.FC<{
     }
   };
 
-  const diffOpts = Object.values(Difficulty).map(d => ({ value: d, label: DIFFICULTY_CONFIG[d].label }));
 
   return (
     <Modal
@@ -330,7 +328,6 @@ export default function VocabularyPage() {
         isOpen={modalOpen}
         onClose={handleCloseModal}
         initialData={editingVocab}
-        topicOptions={topicOptions}
       />
       <ConfirmDialog
         isOpen={!!deleteTarget}

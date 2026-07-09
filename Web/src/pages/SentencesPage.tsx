@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // removed import
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,9 +7,8 @@ import { motion } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, ArrowUpDown, CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react';
 import { aiApi } from '../api/ai.api';
 import { useSentences, useCreateSentence, useUpdateSentence, useDeleteSentence, useMarkSentenceLearned } from '../hooks/useSentence';
-import { useTopics } from '../hooks/useTopics';
 import { Difficulty, type Sentence, type SentenceFilters } from '../types';
-import { DIFFICULTY_CONFIG, DEFAULT_PAGE_SIZE } from '../constants';
+import { DEFAULT_PAGE_SIZE } from '../constants';
 import { Card } from '../components/Card/Card';
 import { Button } from '../components/Button/Button';
 import { Modal } from '../components/Modal/Modal';
