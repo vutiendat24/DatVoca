@@ -24,7 +24,8 @@ export const aiApi = {
       Word: "${word}"
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const baseUrl = import.meta.env.VITE_GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent';
+    const url = `${baseUrl}?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -71,7 +72,8 @@ export const aiApi = {
       Text to translate: "${text}"
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const baseUrl = import.meta.env.VITE_GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent';
+    const url = `${baseUrl}?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
