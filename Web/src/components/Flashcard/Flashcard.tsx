@@ -99,6 +99,8 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                 e.stopPropagation();
                 onAudio();
               }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
               className="mt-6 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors"
             >
               <Volume2 size={20} />

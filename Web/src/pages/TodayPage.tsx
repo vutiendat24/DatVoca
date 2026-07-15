@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Grid, List, Search, Zap } from 'lucide-react';
+import { Grid, List, Search, Zap, Volume2 } from 'lucide-react';
 import { useQuickReviewVocabulary } from '../hooks/useVocabulary';
 import { Difficulty, type Vocabulary } from '../types';
 import { DIFFICULTY_CONFIG } from '../constants';
+
+const playAudio = (text: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    window.speechSynthesis.speak(utter);
+  }
+};
 import { Badge } from '../components/Badge/Badge';
 import { Input } from '../components/Input/Input';
 import { Button } from '../components/Button/Button';
@@ -25,11 +34,16 @@ const VocabGridCard: React.FC<{ vocab: Vocabulary; index: number }> = ({ vocab, 
       <Badge difficulty={vocab.difficulty} />
       {vocab.isLearned && <span className="text-xs font-semibold text-emerald-500">✓ Learned</span>}
     </div>
-    <h3 className="text-xl font-extrabold text-gray-900 dark:text-white capitalize">{vocab.word}</h3>
+    <div className="flex items-center justify-between gap-2">
+      <h3 className="text-xl font-extrabold text-gray-900 dark:text-white capitalize">{vocab.word}</h3>
+      <button onClick={(e) => playAudio(vocab.word, e)} className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors">
+        <Volume2 size={18} />
+      </button>
+    </div>
     <p className="text-xs text-gray-400 font-mono mt-0.5">{vocab.ipa}</p>
     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{vocab.meaning}</p>
     <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">
-      <p className="text-xs italic text-gray-500 dark:text-gray-400 line-clamp-2">"{vocab.exampleEn}"</p>
+      <p className="text-xs italic text-gray-500 dark:text-gray-400">"{vocab.exampleEn}"</p>
     </div>
     {vocab.topicName && (
       <div className="mt-3">
@@ -52,6 +66,9 @@ const VocabListRow: React.FC<{ vocab: Vocabulary; index: number }> = ({ vocab, i
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <h3 className="font-bold text-gray-900 dark:text-white capitalize">{vocab.word}</h3>
+        <button onClick={(e) => playAudio(vocab.word, e)} className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors flex-shrink-0">
+          <Volume2 size={16} />
+        </button>
         <span className="text-xs text-gray-400 font-mono">{vocab.ipa}</span>
         {vocab.isLearned && <span className="text-xs text-emerald-500 font-semibold">✓</span>}
       </div>
@@ -70,10 +87,15 @@ const SentenceGridCard: React.FC<{ sentence: Sentence; index: number }> = ({ sen
   >
     <div className="flex items-start justify-between mb-3">
       <Badge difficulty={sentence.difficulty} />
-      {sentence.isLearned && <span className="text-xs font-semibold text-emerald-500">✓ Learned</span>}
+      <div className="flex items-center gap-2">
+        <button onClick={(e) => playAudio(sentence.english, e)} className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors">
+          <Volume2 size={18} />
+        </button>
+        {sentence.isLearned && <span className="text-xs font-semibold text-emerald-500">✓ Learned</span>}
+      </div>
     </div>
-    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white line-clamp-2">{sentence.english}</h3>
-    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-3">{sentence.vietnamese}</p>
+    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">{sentence.english}</h3>
+    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{sentence.vietnamese}</p>
   </motion.div>
 );
 
@@ -89,10 +111,13 @@ const SentenceListRow: React.FC<{ sentence: Sentence; index: number }> = ({ sent
     </div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
-        <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">{sentence.english}</h3>
-        {sentence.isLearned && <span className="text-xs text-emerald-500 font-semibold">✓</span>}
+        <h3 className="font-bold text-gray-900 dark:text-white">{sentence.english}</h3>
+        <button onClick={(e) => playAudio(sentence.english, e)} className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors flex-shrink-0">
+          <Volume2 size={16} />
+        </button>
+        {sentence.isLearned && <span className="text-xs text-emerald-500 font-semibold flex-shrink-0">✓</span>}
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{sentence.vietnamese}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{sentence.vietnamese}</p>
     </div>
     <Badge difficulty={sentence.difficulty} />
   </motion.div>
