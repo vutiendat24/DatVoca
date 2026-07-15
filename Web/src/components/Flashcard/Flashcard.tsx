@@ -52,7 +52,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
     setTouchStart(null);
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (!isSwiping) {
       onFlip();
     }
