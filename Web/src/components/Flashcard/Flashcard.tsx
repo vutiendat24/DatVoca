@@ -85,7 +85,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
             isFlipped ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white capitalize text-center select-none leading-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white text-center select-none leading-tight">
             {frontMain}
           </h1>
           {frontSub && (

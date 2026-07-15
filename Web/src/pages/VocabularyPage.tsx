@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, ArrowUpDown, CheckCircle2, Circle, Sparkles, Loader2, FolderPlus } from 'lucide-react';
 import { useVocabulary, useCreateVocabulary, useUpdateVocabulary, useDeleteVocabulary, useMarkLearned } from '../hooks/useVocabulary';
 import { aiApi } from '../api/ai.api';
 import { useTopics } from '../hooks/useTopics';
@@ -38,7 +38,9 @@ const VocabFormModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   initialData?: Vocabulary;
-}> = ({ isOpen, onClose, initialData }) => {
+  defaultTopicId?: string;
+  topicOptions: { value: string; label: string }[];
+}> = ({ isOpen, onClose, initialData, defaultTopicId, topicOptions }) => {
   const createMutation = useCreateVocabulary();
   const updateMutation = useUpdateVocabulary();
   const isEdit = !!initialData;
@@ -53,10 +55,12 @@ const VocabFormModal: React.FC<{
   React.useEffect(() => {
     if (isOpen && initialData) {
       reset({ word: initialData.word, ipa: initialData.ipa, meaning: initialData.meaning, exampleEn: initialData.exampleEn, exampleVi: initialData.exampleVi, topicId: initialData.topicId, difficulty: initialData.difficulty });
+    } else if (isOpen && !initialData) {
+      reset({ difficulty: Difficulty.Medium, topicId: defaultTopicId });
     } else if (!isOpen) {
       reset({ difficulty: Difficulty.Medium });
     }
-  }, [isOpen, initialData, reset]);
+  }, [isOpen, initialData, defaultTopicId, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
     const payload = { ...data };
@@ -125,6 +129,7 @@ const VocabFormModal: React.FC<{
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Phát âm (IPA) *" placeholder="Ví dụ: /ɪˈfem.ər.əl/" error={errors.ipa?.message} {...register('ipa')} />
+          <Select label="Chủ đề (Topic)" options={[{ value: '', label: 'Không có chủ đề' }, ...topicOptions]} error={errors.topicId?.message} {...register('topicId')} />
         </div>
         <Textarea label="Nghĩa tiếng Việt *" placeholder="Nghĩa của từ tiếng Anh..." error={errors.meaning?.message} rows={2} {...register('meaning')} />
         <Textarea label="Câu ví dụ (Tiếng Anh) *" placeholder="Câu ví dụ..." error={errors.exampleEn?.message} rows={2} {...register('exampleEn')} />
@@ -141,7 +146,8 @@ const VocabRow: React.FC<{
   onEdit: (v: Vocabulary) => void;
   onDelete: (v: Vocabulary) => void;
   onShowFlashcard: (v: Vocabulary) => void;
-}> = ({ vocab, onEdit, onDelete, onShowFlashcard }) => {
+  onAssignTopic: (v: Vocabulary) => void;
+}> = ({ vocab, onEdit, onDelete, onShowFlashcard, onAssignTopic }) => {
   const markLearned = useMarkLearned();
   return (
     <motion.tr
@@ -178,16 +184,123 @@ const VocabRow: React.FC<{
         <Badge difficulty={vocab.difficulty} />
       </td>
       <td className="px-4 py-4">
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(vocab)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <button onClick={(e) => { e.stopPropagation(); onAssignTopic(vocab); }} className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" title="Add to Topic">
+            <FolderPlus size={15} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(vocab); }} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Edit">
             <Edit2 size={15} />
           </button>
-          <button onClick={() => onDelete(vocab)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+          <button onClick={(e) => { e.stopPropagation(); onDelete(vocab); }} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Delete">
             <Trash2 size={15} />
           </button>
         </div>
       </td>
     </motion.tr>
+  );
+};
+
+const SelectTopicModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  vocab?: Vocabulary;
+  topicOptions: { value: string; label: string }[];
+}> = ({ isOpen, onClose, vocab, topicOptions }) => {
+  const [selectedTopicId, setSelectedTopicId] = useState<string>('');
+  const updateMutation = useUpdateVocabulary();
+
+  React.useEffect(() => {
+    if (isOpen) setSelectedTopicId(vocab?.topicId || '');
+  }, [isOpen, vocab]);
+
+  const handleAssign = async () => {
+    if (!vocab) return;
+    const topicId = selectedTopicId === '' ? undefined : selectedTopicId;
+    await updateMutation.mutateAsync({ id: vocab.id, dto: { topicId } as any });
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Assign to Topic" size="sm" footer={<>
+      <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      <Button onClick={handleAssign} isLoading={updateMutation.isPending}>Save</Button>
+    </>}>
+      <p className="text-sm text-gray-500 mb-4">Select a topic for <strong className="text-gray-900 dark:text-white">{vocab?.word}</strong>:</p>
+      <Select 
+        options={[{ value: '', label: 'None' }, ...topicOptions]} 
+        value={selectedTopicId} 
+        onChange={(e) => setSelectedTopicId(e.target.value)} 
+      />
+    </Modal>
+  );
+};
+
+const AssignWordsModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  topicId: string;
+}> = ({ isOpen, onClose, topicId }) => {
+  const { data, isLoading } = useVocabulary({ limit: 1000 });
+  const updateMutation = useUpdateVocabulary();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedIds(new Set());
+      setSearch('');
+    }
+  }, [isOpen]);
+
+  const wordsNotInTopic = React.useMemo(() => {
+    return (data?.data || [])
+      .filter(v => v.topicId !== topicId)
+      .filter(v => search ? v.word.toLowerCase().includes(search.toLowerCase()) || v.meaning.toLowerCase().includes(search.toLowerCase()) : true);
+  }, [data, topicId, search]);
+
+  const handleToggle = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleAssign = async () => {
+    const promises = Array.from(selectedIds).map(id => updateMutation.mutateAsync({ id, dto: { topicId } as any }));
+    await Promise.all(promises);
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Existing Words to Topic" size="md" footer={<>
+      <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      <Button onClick={handleAssign} isLoading={updateMutation.isPending} disabled={selectedIds.size === 0}>
+        Add {selectedIds.size} words
+      </Button>
+    </>}>
+      {isLoading ? <div className="p-4 text-center">Loading...</div> : (
+        <div className="flex flex-col gap-4">
+          <Input 
+            placeholder="Search words..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            leftIcon={<Search size={16} />} 
+          />
+          <div className="max-h-[40vh] overflow-y-auto flex flex-col gap-2 border border-gray-100 dark:border-gray-800 rounded-xl p-2 bg-gray-50/50 dark:bg-gray-900/50">
+            {wordsNotInTopic.length === 0 ? <p className="text-gray-500 text-center p-4">No words found.</p> : null}
+            {wordsNotInTopic.map(v => (
+              <label key={v.id} className="flex items-center gap-3 p-3 border border-transparent hover:border-pink-200 dark:hover:border-pink-900/50 rounded-lg cursor-pointer hover:bg-white dark:hover:bg-gray-800 transition-colors">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-500" checked={selectedIds.has(v.id)} onChange={() => handleToggle(v.id)} />
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900 dark:text-white">{v.word}</p>
+                  <p className="text-xs text-gray-500">{v.meaning}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 };
 
@@ -205,6 +318,8 @@ export default function VocabularyPage() {
   const [editingVocab, setEditingVocab] = useState<Vocabulary | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Vocabulary | undefined>();
   const [flashcardVocab, setFlashcardVocab] = useState<Vocabulary | undefined>();
+  const [assignTopicVocab, setAssignTopicVocab] = useState<Vocabulary | undefined>();
+  const [assignWordsModalOpen, setAssignWordsModalOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
@@ -244,9 +359,16 @@ export default function VocabularyPage() {
             {data?.total ?? 0} words total
           </p>
         </div>
-        <Button leftIcon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
-          Add Word
-        </Button>
+        <div className="flex items-center gap-3">
+          {topicIdParam && (
+            <Button variant="secondary" leftIcon={<FolderPlus size={16} />} onClick={() => setAssignWordsModalOpen(true)}>
+              Add Existing Words
+            </Button>
+          )}
+          <Button leftIcon={<Plus size={16} />} onClick={() => setModalOpen(true)}>
+            Add Word
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -313,7 +435,7 @@ export default function VocabularyPage() {
               </thead>
               <tbody>
                 {data.data.map(v => (
-                  <VocabRow key={v.id} vocab={v} onEdit={handleEdit} onDelete={handleDelete} onShowFlashcard={(v) => { setFlashcardVocab(v); setIsFlipped(false); }} />
+                  <VocabRow key={v.id} vocab={v} onEdit={handleEdit} onDelete={handleDelete} onShowFlashcard={(v) => { setFlashcardVocab(v); setIsFlipped(false); }} onAssignTopic={setAssignTopicVocab} />
                 ))}
               </tbody>
             </table>
@@ -328,7 +450,22 @@ export default function VocabularyPage() {
         isOpen={modalOpen}
         onClose={handleCloseModal}
         initialData={editingVocab}
+        defaultTopicId={topicIdParam || undefined}
+        topicOptions={topicOptions}
       />
+      <SelectTopicModal 
+        isOpen={!!assignTopicVocab}
+        onClose={() => setAssignTopicVocab(undefined)}
+        vocab={assignTopicVocab}
+        topicOptions={topicOptions}
+      />
+      {topicIdParam && (
+        <AssignWordsModal 
+          isOpen={assignWordsModalOpen}
+          onClose={() => setAssignWordsModalOpen(false)}
+          topicId={topicIdParam}
+        />
+      )}
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(undefined)}
