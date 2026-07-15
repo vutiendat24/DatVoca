@@ -10,6 +10,8 @@ export interface FlashcardProps {
   isFlipped: boolean;
   onFlip: () => void;
   onAudio?: () => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
 export const Flashcard: React.FC<FlashcardProps> = ({
@@ -20,19 +22,57 @@ export const Flashcard: React.FC<FlashcardProps> = ({
   isFlipped,
   onFlip,
   onAudio,
+  onSwipeLeft,
+  onSwipeRight,
 }) => {
+  const [touchStart, setTouchStart] = React.useState<{x: number, y: number} | null>(null);
+  const [isSwiping, setIsSwiping] = React.useState(false);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.isPrimary) {
+      setTouchStart({ x: e.clientX, y: e.clientY });
+      setIsSwiping(false);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!touchStart || !e.isPrimary) return;
+    
+    const distanceX = touchStart.x - e.clientX;
+    const distanceY = touchStart.y - e.clientY;
+    
+    if (Math.abs(distanceX) > 40 && Math.abs(distanceY) < 100) {
+      setIsSwiping(true);
+      if (distanceX > 0) {
+        onSwipeLeft?.();
+      } else {
+        onSwipeRight?.();
+      }
+    }
+    setTouchStart(null);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isSwiping) {
+      onFlip();
+    }
+    setIsSwiping(false);
+  };
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onFlip}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => setTouchStart(null)}
       onKeyDown={(e) => {
         if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
           onFlip();
         }
       }}
-      className="w-full h-[300px] perspective-1000 cursor-pointer focus-visible:outline-none"
+      className="w-full h-[300px] perspective-1000 cursor-pointer focus-visible:outline-none touch-pan-y select-none"
     >
       <motion.div
         animate={{ rotateY: isFlipped ? 180 : 0 }}

@@ -188,6 +188,8 @@ export default function FlashcardsPage() {
                 isFlipped={isFlipped}
                 onFlip={() => setIsFlipped((f) => !f)}
                 onAudio={handleAudio}
+                onSwipeLeft={next}
+                onSwipeRight={prev}
                 frontMain={current.type === 'word' ? current.word : current.english}
                 frontSub={current.type === 'word' ? current.ipa : undefined}
                 backMain={current.type === 'word' ? current.meaning : current.vietnamese}
